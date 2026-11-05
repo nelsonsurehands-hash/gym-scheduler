@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Gym Schedule · The Extra Coach Facilities</title>
+<meta name="description" content="One gym and facility schedule for the whole school. Staff request times, the athletic director approves, and everyone sees the same calendar.">
+<meta name="theme-color" content="#172A5E">
+<link rel="icon" href="img/glyph.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div id="demoBar" class="demo-bar" hidden></div>
+
+<!-- ============ Sign in ============ -->
+<main id="screen-auth" class="screen auth" hidden>
+  <div class="auth-card">
+    <div class="brand"><img src="img/glyph.svg" alt="" width="44" height="44"><span>The Extra Coach <b>Facilities</b></span></div>
+    <h1>One gym schedule for the whole school.</h1>
+    <p class="lede">Staff request times, the athletic director approves, and everyone sees the same calendar.</p>
+    <div class="seg auth-tabs" role="tablist"><button type="button" data-auth="in" aria-selected="true">Sign in</button><button type="button" data-auth="up" aria-selected="false">Create account</button></div>
+    <form id="authForm" novalidate>
+      <label class="f" id="fName" hidden>Your name<input id="aName" autocomplete="name" placeholder="e.g. Coach Miller"></label>
+      <label class="f">Email<input id="aEmail" type="email" autocomplete="email" required></label>
+      <label class="f" id="fPw">Password<input id="aPw" type="password" autocomplete="current-password" minlength="6" required></label>
+      <div class="msg" id="authMsg" role="status"></div>
+      <button class="btn primary wide" type="submit" id="authGo">Sign in</button>
+      <button class="linkbtn" type="button" id="authForgot">Forgot password?</button>
+    </form>
+    <p class="fine">Already use The Extra Coach? Sign in with the same email and password.</p>
+    <p class="fine"><a href="?demo">Try the demo</a> — no account needed.</p>
+  </div>
+</main>
+
+<!-- ============ New password (from the reset email) ============ -->
+<main id="screen-newpw" class="screen auth" hidden>
+  <form class="auth-card" id="newPwForm">
+    <div class="brand"><img src="img/glyph.svg" alt="" width="44" height="44"><span>The Extra Coach <b>Facilities</b></span></div>
+    <h1>Choose a new password</h1>
+    <label class="f">New password<input id="npPw" type="password" autocomplete="new-password" minlength="6" required></label>
+    <div class="msg" id="npMsg"></div>
+    <button class="btn primary wide" type="submit">Save password</button>
+  </form>
+</main>
+
+<!-- ============ First school ============ -->
+<main id="screen-setup" class="screen auth" hidden>
+  <form class="auth-card" id="setupForm">
+    <div class="brand"><img src="img/glyph.svg" alt="" width="44" height="44"><span>The Extra Coach <b>Facilities</b></span></div>
+    <h1>Set up your school</h1>
+    <p class="lede">You'll be the administrator. You can add staff and change any of this later.</p>
+    <label class="f">School or facility name<input id="suName" required maxlength="120" placeholder="e.g. Hickory Hills Middle School"></label>
+    <fieldset class="f"><legend>Spaces people book</legend>
+      <div class="chips" id="suSpaces"></div>
+      <div class="row"><input id="suAdd" placeholder="Add a space, e.g. Wrestling Room" maxlength="80"><button class="btn" type="button" id="suAddBtn">Add</button></div>
+    </fieldset>
+    <div class="msg" id="suMsg"></div>
+    <button class="btn primary wide" type="submit">Create school</button>
+    <p class="fine" id="suWait">Waiting to be added by your school? Ask your administrator to add <b id="suEmail"></b> on their People page, then reload.</p>
+    <button class="linkbtn" type="button" data-signout>Sign out</button>
+  </form>
+</main>
+
+<!-- ============ The app ============ -->
+<div id="screen-app" class="screen" hidden>
+  <header class="top">
+    <a class="brand small" href="./" aria-label="Home"><img src="img/glyph.svg" alt="" width="34" height="34"><span class="brand-txt">The Extra Coach <b>Facilities</b></span></a>
+    <div class="org-pick" id="orgPick"></div>
+    <div class="me" id="meBox"></div>
+  </header>
+  <nav class="tabs" id="tabs" role="tablist">
+    <button type="button" data-tab="schedule" aria-selected="true">Schedule</button>
+    <button type="button" data-tab="requests" aria-selected="false" class="for-admin">Requests <i class="badge" id="reqBadge" hidden></i></button>
+    <button type="button" data-tab="mine" aria-selected="false" class="for-editor">My requests</button>
+    <button type="button" data-tab="people" aria-selected="false" class="for-admin">People</button>
+    <button type="button" data-tab="settings" aria-selected="false" class="for-admin">Settings</button>
+  </nav>
+
+  <section class="view" id="view-schedule">
+    <div class="sch-bar">
+      <div class="sch-title"><h1 id="schTitle"></h1><p class="sub" id="schSub"></p></div>
+      <div class="sch-actions">
+        <div class="seg" role="group" aria-label="View"><button type="button" data-view="day">Day</button><button type="button" data-view="week">Week</button><button type="button" data-view="month">Month</button></div>
+        <div class="nav"><button class="btn icon" type="button" id="prev" aria-label="Previous">‹</button><button class="btn" type="button" id="today">Today</button><button class="btn icon" type="button" id="next" aria-label="Next">›</button></div>
+        <button class="btn primary for-book" type="button" id="bookBtn">+ Book time</button>
+      </div>
+    </div>
+    <div class="space-filter" id="spaceFilter" role="group" aria-label="Spaces"></div>
+    <div id="schBody"></div>
+    <p class="key"><span><i class="k-ok"></i>Approved</span><span><i class="k-pend"></i>Waiting for approval</span></p>
+  </section>
+
+  <section class="view" id="view-requests" hidden>
+    <h1>Requests</h1>
+    <p class="sub">Approve or decline time people asked for. Repeating requests are grouped, so one tap handles the whole series.</p>
+    <div id="reqList"></div>
+  </section>
+
+  <section class="view" id="view-mine" hidden>
+    <h1>My requests</h1>
+    <p class="sub">Everything you've booked or asked for, with its status.</p>
+    <div id="mineList"></div>
+  </section>
+
+  <section class="view" id="view-people" hidden>
+    <h1>People</h1>
+    <p class="sub">Add staff by email. They join the first time they sign in with that email.</p>
+    <div class="card">
+      <h2>Add people</h2>
+      <form id="invForm" class="inv-form">
+        <label class="f grow">Emails<textarea id="invEmails" rows="2" placeholder="One or more, separated by commas or new lines"></textarea></label>
+        <label class="f">Access<select id="invRole"><option value="viewer">Viewer: sees the schedule</option><option value="editor" selected>Editor: books time</option><option value="admin">Administrator: approves and manages</option></select></label>
+        <label class="check"><input type="checkbox" id="invDirect"> Books without approval</label>
+        <button class="btn primary" type="submit">Add</button>
+      </form>
+      <div class="msg" id="invMsg"></div>
+    </div>
+    <div class="card"><h2>Members</h2><div id="memberList"></div></div>
+    <div class="card" id="invCard"><h2>Invited, not signed in yet</h2><div id="inviteList"></div>
+      <p class="help">Send them the link <b id="invLink"></b> and ask them to create an account with the invited email.</p></div>
+    <div class="card roles">
+      <h2>What each role can do</h2>
+      <dl><dt>Viewer</dt><dd>Sees the approved schedule and what's waiting.</dd>
+      <dt>Editor</dt><dd>Requests time. Requests wait for an administrator unless "Books without approval" is on.</dd>
+      <dt>Administrator</dt><dd>Approves and declines, books directly, edits anything, adds people and changes settings.</dd></dl>
+    </div>
+  </section>
+
+  <section class="view" id="view-settings" hidden>
+    <h1>Settings</h1>
+    <div class="card">
+      <h2>School</h2>
+      <label class="f">Name<input id="stName" maxlength="120"></label>
+      <div class="grid2"><label class="f">Schedule starts<input type="time" id="stStart"></label><label class="f">Schedule ends<input type="time" id="stEnd"></label></div>
+      <label class="check"><input type="checkbox" id="stApproval"> Editors' bookings need an administrator's approval</label>
+      <div class="actions"><button class="btn primary" type="button" id="stSave">Save</button><span class="msg" id="stMsg"></span></div>
+    </div>
+    <div class="card">
+      <h2>Spaces</h2>
+      <div id="spaceList"></div>
+      <div class="row"><input id="spNew" placeholder="Add a space, e.g. Wrestling Room" maxlength="80"><button class="btn" type="button" id="spAdd">Add space</button></div>
+      <div class="msg" id="spMsg"></div>
+    </div>
+    <div class="card">
+      <h2>Schedule link for everyone</h2>
+      <p class="help">A read-only link anyone can open without signing in: families, the front office, visiting teams. It shows approved times only.</p>
+      <div id="pubBox"></div>
+    </div>
+    <div class="card danger">
+      <h2>Delete school</h2>
+      <p class="help">Removes the school, its spaces and every booking for everyone. This can't be undone.</p>
+      <button class="btn warn" type="button" id="stDelete">Delete this school</button>
+    </div>
+  </section>
+</div>
+
+<!-- ============ Public schedule (?s=link) ============ -->
+<div id="screen-public" class="screen" hidden>
+  <header class="top"><span class="brand small"><img src="img/glyph.svg" alt="" width="34" height="34"><span class="brand-txt">The Extra Coach <b>Facilities</b></span></span></header>
+</div>
+
+<!-- ============ Book / edit ============ -->
+<dialog id="bookDlg" class="sheet" aria-labelledby="bkTitle">
+  <form method="dialog" id="bookForm" novalidate>
+    <div class="sheet-head"><h2 id="bkTitle">Book time</h2><button class="btn icon" value="cancel" formnovalidate aria-label="Close">✕</button></div>
+    <label class="f">What is it?<input id="bkWhat" maxlength="120" placeholder="e.g. 8th Grade Girls practice" required></label>
+    <div class="grid2">
+      <label class="f">Space<select id="bkSpace"></select></label>
+      <label class="f">Date<input type="date" id="bkDate" required></label>
+      <label class="f">Starts<input type="time" id="bkStart" required step="300"></label>
+      <label class="f">Ends<input type="time" id="bkEnd" required step="300"></label>
+    </div>
+    <div class="grid2">
+      <label class="f">Group or team<input id="bkGroup" maxlength="80" placeholder="Optional" list="bkGroups"></label>
+      <label class="f">Notes<input id="bkNotes" maxlength="500" placeholder="Optional"></label>
+    </div>
+    <datalist id="bkGroups"></datalist>
+    <fieldset class="f repeat" id="bkRepeatBox"><legend>Repeat</legend>
+      <label class="check"><input type="checkbox" id="bkRepeat"> Every week on</label>
+      <div class="dow" id="bkDow"></div>
+      <label class="f inline" id="bkUntilWrap">until<input type="date" id="bkUntil"></label>
+      <small class="help" id="bkCount"></small>
+    </fieldset>
+    <div class="conflicts" id="bkConflicts"></div>
+    <p class="help" id="bkNote"></p>
+    <div class="msg" id="bkMsg" role="status"></div>
+    <div class="actions end"><button class="btn" value="cancel" formnovalidate>Cancel</button><button class="btn primary" type="button" id="bkGo">Request</button></div>
+  </form>
+</dialog>
+
+<!-- ============ Booking details ============ -->
+<dialog id="detailDlg" class="sheet" aria-labelledby="dtTitle"><div id="detailBody"></div></dialog>
+
+<!-- ============ Confirm ============ -->
+<dialog id="askDlg" class="sheet small"><form method="dialog"><h2 id="askTitle"></h2><p id="askText" class="help"></p>
+  <label class="f" id="askNoteWrap" hidden>Note to the person (optional)<input id="askNote" maxlength="300"></label>
+  <div class="actions end"><button class="btn" value="no">Cancel</button><button class="btn primary" value="yes" id="askYes">OK</button></div></form></dialog>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0/dist/umd/supabase.js"></script>
+<script src="js/config.js"></script>
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
