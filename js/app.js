@@ -23,11 +23,14 @@ const store={get(k,d){try{const v=localStorage.getItem("fac:"+k);return v==null?
 
 /* ---------- state ---------- */
 const S={orgs:[],org:null,spaces:[],bookings:[],members:[],invites:[],
-  view:store.get("view",matchMedia("(max-width:640px)").matches?"day":"week"),date:todayISO(),hide:store.get("hideSpaces",[]),tab:"schedule",pub:null};
+  view:store.get("view","month"),date:todayISO(),focus:store.get("focusSpace",null),tab:"schedule",pub:null};
 const role=()=>S.org?S.org.role:null,isAdmin=()=>role()==="admin",canBook=()=>role()==="admin"||role()==="editor";
 const direct=()=>isAdmin()||(role()==="editor"&&(S.org.direct||S.org.approval===false));
 const spaceOf=id=>S.spaces.find(s=>s.id===id)||{name:"Space",color:"#888"};
-const visibleSpaces=()=>S.spaces.filter(s=>!S.hide.includes(s.id));
+/* One gym at a time by default (the one you last picked); "All" puts every space side by side. */
+const focusId=()=>S.focus==="all"||S.spaces.length<2?"all":(S.spaces.some(s=>s.id===S.focus)?S.focus:S.spaces[0].id);
+const visibleSpaces=()=>{const f=focusId();return f==="all"?S.spaces:S.spaces.filter(s=>s.id===f);};
+const shown=id=>{const f=focusId();return f==="all"||f===id;};
 
 /* ---------- start ---------- */
 async function start(){
@@ -53,7 +56,6 @@ async function openOrg(){
   document.body.classList.toggle("can-book",canBook());
   document.body.classList.toggle("is-editor",role()==="editor");
   S.spaces=await DB.spaces(S.org.id);
-  S.hide=S.hide.filter(id=>S.spaces.some(s=>s.id===id));
   show("screen-app");renderOrgPick();renderMe();
   if(!isAdmin()&&["requests","people","settings"].includes(S.tab))S.tab="schedule";
   if(role()!=="editor"&&S.tab==="mine")S.tab="schedule";
@@ -142,20 +144,22 @@ function renderSchedule(loading){
     $("#schSub").textContent=`${shortDay(a)} – ${shortDay(b)}, ${B.getFullYear()}`;}
   else{$("#schTitle").textContent=`${MON[d.getMonth()]} ${d.getFullYear()}`;$("#schSub").textContent="";}
   renderSpaceFilter();
+  {const f=focusId();if(f!=="all"){const n=spaceOf(f).name;$("#schSub").textContent=($("#schSub").textContent?$("#schSub").textContent+" · ":"")+n;}}
   if(loading&&!S.bookings.length){$("#schBody").innerHTML=`<div class="empty">Loading…</div>`;return;}
   if(!S.spaces.length){$("#schBody").innerHTML=`<div class="empty">No spaces yet.${isAdmin()?" Add your gyms and rooms in Settings.":""}</div>`;return;}
-  const list=S.bookings.filter(b=>b.status!=="declined"&&!S.hide.includes(b.space_id));
+  const list=S.bookings.filter(b=>b.status!=="declined"&&shown(b.space_id));
   $("#schBody").innerHTML=S.view==="day"?dayHTML(list):S.view==="week"?weekHTML(list):monthHTML(list);
   if(S.view==="day")scrollDay();
 }
 function renderSpaceFilter(){
-  const el=$("#spaceFilter");if(S.spaces.length<2){el.innerHTML="";return;}
-  el.innerHTML=S.spaces.map(s=>{const on=!S.hide.includes(s.id);return `<label class="sf${on?" on":""}" style="--c:${esc(s.color)}"><input type="checkbox" data-sf="${s.id}"${on?" checked":""}><i></i>${esc(s.name)}</label>`;}).join("");
+  const el=$("#spaceFilter");if(S.spaces.length<2){el.innerHTML="";return;}const f=focusId();
+  const chip=(id,label,color)=>`<label class="sf${f===id?" on":""}" style="--c:${esc(color)}"><input type="radio" name="spf" data-sf="${id}"${f===id?" checked":""}>${id==="all"?"":"<i></i>"}${esc(label)}</label>`;
+  el.innerHTML=S.spaces.map(s=>chip(s.id,s.name,s.color)).join("")+chip("all","All spaces","var(--muted)");
 }
 $("#spaceFilter").addEventListener("change",e=>{const id=e.target.dataset.sf;if(!id)return;
-  S.hide=e.target.checked?S.hide.filter(x=>x!==id):[...S.hide,id];if(!S.pub)store.set("hideSpaces",S.hide);renderSchedule();});
+  S.focus=id;if(!S.pub)store.set("focusSpace",id);renderSchedule();});
 const evHTML=(b,style="")=>{const sp=spaceOf(b.space_id);
-  return `<button type="button" class="ev ${b.status}" data-bk="${b.id}" style="--c:${esc(sp.color)};${style}"><b>${esc(b.title)}</b><small>${span(b.start_time,b.end_time)}${S.view!=="day"&&S.spaces.length>1?" · "+esc(sp.name):""}</small>${b.status==="pending"?`<span class="st">Waiting for approval</span>`:""}</button>`;};
+  return `<button type="button" class="ev ${b.status}" data-bk="${b.id}" style="--c:${esc(sp.color)};${style}"><b>${esc(b.title)}</b><small>${span(b.start_time,b.end_time)}${S.view!=="day"&&focusId()==="all"?" · "+esc(sp.name):""}</small>${b.status==="pending"?`<span class="st">Waiting for approval</span>`:""}</button>`;};
 
 /* Day: spaces side by side on a time grid. Overlapping requests share the column. */
 function dayHTML(list){
@@ -175,7 +179,7 @@ function dayHTML(list){
     <div class="times">${times}</div>${cols}</div></div>`;
 }
 function scrollDay(){const w=$(".day-wrap");if(!w)return;const a=+w.dataset.start,H=52;
-  const first=S.bookings.filter(b=>b.date===S.date&&!S.hide.includes(b.space_id)).map(b=>toMin(b.start_time)).sort((x,y)=>x-y)[0];
+  const first=S.bookings.filter(b=>b.date===S.date&&shown(b.space_id)).map(b=>toMin(b.start_time)).sort((x,y)=>x-y)[0];
   const t=S.date===todayISO()?new Date().getHours()*60-60:first!=null?first-30:8*60;w.scrollTop=Math.max(0,(t-a)/60*H);}
 function weekHTML(list){
   const [a]=range(),t=todayISO();
@@ -183,12 +187,44 @@ function weekHTML(list){
     return `<section class="wk-day${d===t?" today":""}${d<t?" past":""}"><button type="button" class="wk-h" data-goday="${d}"><b>${DOW[D.getDay()]}</b><small>${MON[D.getMonth()].slice(0,3)} ${D.getDate()}</small></button>
       ${items.length?items.map(b=>evHTML(b)).join(""):`<span class="none">Open</span>`}${S.pub?"":`<button type="button" class="wk-add" data-addday="${d}">+ Book</button>`}</section>`;}).join("")}</div>`;
 }
+/* Month: like The Extra Coach calendar. Each day lists what's booked; the bar shows how full the day is. Tap a day for open times. */
+function dayBounds(){const org=S.pub?S.pub.org:S.org;return [toMin(org.day_start||"06:00"),toMin(org.day_end||"22:00")];}
+function fullness(items,nSpaces){const [a,z]=dayBounds();if(z<=a)return 0;let used=0;
+  const by={};items.forEach(b=>{(by[b.space_id]=by[b.space_id]||[]).push([Math.max(a,toMin(b.start_time)),Math.min(z,toMin(b.end_time))]);});
+  Object.values(by).forEach(l=>{l.sort((x,y)=>x[0]-y[0]);let cs=-1,ce=-1;l.forEach(([x,y])=>{if(x>ce){if(ce>cs)used+=ce-cs;cs=x;ce=y;}else ce=Math.max(ce,y);});if(ce>cs)used+=ce-cs;});
+  return Math.min(1,used/((z-a)*Math.max(1,nSpaces)));}
 function monthHTML(list){
-  const [a]=range(),m=dObj(S.date).getMonth(),t=todayISO();
-  return `<div class="month"><div class="mo-h">${DOW.map(x=>`<div>${x}</div>`).join("")}</div><div class="mo-g">${Array.from({length:42},(_,i)=>{const d=addDays(a,i),D=dObj(d),items=list.filter(b=>b.date===d);
-    return `<button type="button" class="mo-c${D.getMonth()!==m?" out":""}${d===t?" today":""}" data-goday="${d}" aria-label="${esc(longDay(d))}, ${items.length} booking${items.length===1?"":"s"}"><span class="n">${D.getDate()}</span>
-      <span class="dots">${items.slice(0,4).map(b=>`<span class="mo-e ${b.status}" style="--c:${esc(spaceOf(b.space_id).color)}"><i></i><span>${esc(ampm(b.start_time).replace(" ",""))} ${esc(b.title)}</span></span>`).join("")}</span>
-      ${items.length>4?`<span class="mo-more">+${items.length-4} more</span>`:""}</button>`;}).join("")}</div></div>`;
+  const [a]=range(),m=dObj(S.date).getMonth(),t=todayISO(),one=focusId()!=="all",n=visibleSpaces().length;
+  return `<div class="month${one?" one":""}"><div class="mo-h">${DOW.map(x=>`<div>${x}</div>`).join("")}</div><div class="mo-g">${Array.from({length:42},(_,i)=>{const d=addDays(a,i),D=dObj(d),items=list.filter(b=>b.date===d);
+    const full=fullness(items.filter(b=>b.status==="approved"),n),pct=Math.round(full*100);
+    return `<button type="button" class="mo-c${D.getMonth()!==m?" out":""}${d===t?" today":""}${d<t?" past":""}" data-peek="${d}" aria-label="${esc(longDay(d))}: ${items.length} booking${items.length===1?"":"s"}, ${100-pct}% open"><span class="n">${D.getDate()}</span>
+      <span class="mo-list">${items.slice(0,3).map(b=>`<span class="mo-e ${b.status}" style="--c:${esc(spaceOf(b.space_id).color)}"><i></i><span><b>${esc(b.title)}</b><small>${esc(ampm(b.start_time).replace(":00","").replace(" ",""))}</small></span></span>`).join("")}</span>
+      ${items.length>3?`<span class="mo-more">+${items.length-3} more</span>`:""}
+      <span class="mo-bar" title="${100-pct}% open"><i style="width:${pct}%"></i></span></button>`;}).join("")}</div></div>`;
+}
+/* Tap a day: what's booked and the open times in between, for the gym you're looking at (or every space). */
+function slotsFor(spaceId,date,list){
+  const [a,z]=dayBounds(),items=list.filter(b=>b.space_id===spaceId&&b.date===date&&b.status!=="declined").sort((x,y)=>toMin(x.start_time)-toMin(y.start_time));
+  const out=[];let cur=a;
+  items.forEach(b=>{const st=toMin(b.start_time),en=toMin(b.end_time);if(st-cur>=15)out.push({open:true,s:cur,e:st});out.push({b});cur=Math.max(cur,en);});
+  if(z-cur>=15)out.push({open:true,s:cur,e:z});return out;}
+const dur=m=>{const h=Math.floor(m/60),r=m%60;return (h?h+" hr":"")+(h&&r?" ":"")+(r?r+" min":"");};
+function peekDay(date){
+  let d=$("#peekDlg");
+  if(!d){d=document.createElement("dialog");d.id="peekDlg";d.className="sheet";document.body.appendChild(d);
+    d.addEventListener("click",e=>{if(e.target===d||e.target.closest("[data-pk=close]")){d.close();return;}
+      const bk=e.target.closest("[data-pkbook]");if(bk){d.close();const [sp,st,en]=bk.dataset.pkbook.split("|");openBook({date:d.dataset.date,space_id:sp,start_time:fromMin(+st),end_time:fromMin(Math.min(+en,+st+120))});return;}
+      const ev=e.target.closest("[data-bk]");if(ev){d.close();openDetail(S.bookings.find(b=>b.id===ev.dataset.bk));return;}
+      if(e.target.closest("[data-pk=day]")){d.close();S.date=d.dataset.date;S.view="day";if(!S.pub)store.set("view","day");loadSchedule();}});}
+  d.dataset.date=date;const past=date<todayISO(),sp=visibleSpaces();
+  d.innerHTML=`<div><div class="sheet-head"><div><h2>${esc(dObj(date).toLocaleDateString("en-US",{weekday:"long"}))}</h2><p class="sub" style="margin:2px 0 0">${esc(dObj(date).toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"}))}</p></div>
+      <button class="btn icon" type="button" data-pk="close" aria-label="Close">✕</button></div>
+    ${sp.map(s=>{const rows=slotsFor(s.id,date,S.bookings);const free=rows.filter(r=>r.open).reduce((t,r)=>t+r.e-r.s,0);
+      return `<section class="pk-sp" style="--c:${esc(s.color)}"><h3><i></i>${esc(s.name)}<small>${free?dur(free)+" open":"Fully booked"}</small></h3><ol class="slots">${rows.map(r=>r.open?
+        `<li class="slot open"><span class="t">${span(fromMin(r.s),fromMin(r.e))}</span><span class="w"><b>Open</b><small>${dur(r.e-r.s)}</small></span>${canBook()&&!S.pub&&!past?`<button class="btn sm" type="button" data-pkbook="${s.id}|${r.s}|${r.e}">${direct()?"Book":"Request"}</button>`:""}</li>`:
+        `<li class="slot ${r.b.status}"><span class="t">${span(r.b.start_time,r.b.end_time)}</span><button type="button" class="w" data-bk="${r.b.id}"><b>${esc(r.b.title)}</b><small>${r.b.status==="pending"?"Waiting for approval":esc(r.b.group_name||"Booked")}</small></button></li>`).join("")}</ol></section>`;}).join("")}
+    <div class="actions"><button class="btn" type="button" data-pk="day">See the day on a timeline</button></div></div>`;
+  d.showModal();
 }
 $$("[data-view]").forEach(b=>b.addEventListener("click",()=>{S.view=b.dataset.view;if(!S.pub)store.set("view",S.view);loadSchedule();}));
 const step=dir=>{if(S.view==="day")S.date=addDays(S.date,dir);else if(S.view==="week")S.date=addDays(S.date,7*dir);else{const d=dObj(S.date);S.date=iso(new Date(d.getFullYear(),d.getMonth()+dir,1,12));}loadSchedule();};
@@ -196,6 +232,7 @@ $("#prev").addEventListener("click",()=>step(-1));$("#next").addEventListener("c
 $("#today").addEventListener("click",()=>{S.date=todayISO();loadSchedule();});
 $("#schBody").addEventListener("click",e=>{
   const ev=e.target.closest("[data-bk]");if(ev){openDetail(S.bookings.find(b=>b.id===ev.dataset.bk));return;}
+  const pk=e.target.closest("[data-peek]");if(pk){peekDay(pk.dataset.peek);return;}
   const g=e.target.closest("[data-goday]");if(g){S.date=g.dataset.goday;S.view="day";if(!S.pub)store.set("view","day");loadSchedule();return;}
   const ad=e.target.closest("[data-addday]");if(ad){openBook({date:ad.dataset.addday});return;}
   const col=e.target.closest("[data-col]");if(col&&canBook()&&!S.pub){const w=$(".day-wrap"),a=+w.dataset.start,r=col.getBoundingClientRect();

@@ -291,3 +291,46 @@ input[type=date],input[type=time]{-webkit-appearance:none;appearance:none;displa
 }
 .col .ev{display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch}
 .ev{display:flex;flex-direction:column;align-items:stretch}
+/* ---------- month: bookings in each day + how full it is ---------- */
+.mo-c{position:relative;cursor:pointer;padding-bottom:12px}
+.mo-c:hover{background:color-mix(in srgb,var(--accent) 6%,var(--surface))}
+.mo-c.past:not(.today){opacity:.72}
+.mo-list{display:flex;flex-direction:column;gap:3px;min-width:0}
+.mo-e{display:flex;align-items:flex-start;gap:5px;font-size:12px;line-height:1.2;min-width:0;white-space:normal}
+.mo-e i{width:3px;height:auto;align-self:stretch;border-radius:2px;background:var(--c);flex:none}
+.mo-e>span{display:flex;gap:4px;min-width:0;overflow:hidden}
+.mo-e b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mo-e small{color:var(--muted);flex:none}
+.mo-e.pending b{color:var(--pend);font-style:italic}
+.mo-bar{position:absolute;left:6px;right:6px;bottom:5px;height:3px;border-radius:2px;background:color-mix(in srgb,var(--good) 28%,transparent);overflow:hidden}
+.mo-bar i{display:block;height:100%;background:var(--accent);border-radius:2px}
+.mo-c.out .mo-bar{opacity:.4}
+@media (max-width:640px){
+  .mo-c{min-height:78px;padding:4px 3px 10px}
+  .mo-e span{display:flex}
+  .mo-e{font-size:10px;gap:3px}
+  .mo-e small{display:none}
+  .mo-e b{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.15;word-break:normal;overflow-wrap:anywhere}
+  .mo-list .mo-e:nth-child(n+3){display:none}
+  .mo-more{display:block;font-size:10px}
+  .mo-bar{left:3px;right:3px;bottom:4px}
+}
+/* ---------- day sheet: open times ---------- */
+.pk-sp{margin:4px 0 14px}
+.pk-sp h3{display:flex;align-items:center;gap:8px;margin:0 0 8px;font-size:15px}
+.pk-sp h3 i{width:10px;height:10px;border-radius:3px;background:var(--c)}
+.pk-sp h3 small{margin-left:auto;font-weight:600;color:var(--good);font-size:13px}
+.slots{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.slot{display:grid;grid-template-columns:118px 1fr auto;gap:10px;align-items:center;padding:10px 12px;border-radius:10px;border:1px solid var(--line)}
+.slot .t{font-size:13.5px;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums}
+.slot .w{display:grid;gap:1px;min-width:0;text-align:left;border:0;background:none;padding:0;color:inherit}
+.slot .w b{font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.slot .w small{font-size:12.5px;color:var(--muted)}
+.slot.open{border:1.5px dashed color-mix(in srgb,var(--good) 55%,var(--line));background:color-mix(in srgb,var(--good) 7%,var(--surface))}
+.slot.open .w b{color:var(--good)}
+.slot.approved{border-left:4px solid var(--c);background:color-mix(in srgb,var(--c) 10%,var(--surface))}
+.slot.pending{border:1.5px dashed var(--pend);border-left:4px solid var(--c);background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--pend) 10%,var(--surface)) 0 6px,var(--surface) 6px 12px)}
+@media (max-width:560px){.slot{grid-template-columns:96px 1fr auto;padding:9px 10px}.slot .t{font-size:12.5px}}
+.sf{position:relative}
+.sf input{left:0;top:0;pointer-events:none}
+.key .k-bar{width:22px;height:3px;border-radius:2px;background:linear-gradient(90deg,var(--accent) 60%,color-mix(in srgb,var(--good) 28%,transparent) 60%)}
