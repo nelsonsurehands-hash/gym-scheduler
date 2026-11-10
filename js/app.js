@@ -83,7 +83,7 @@ $("#authForgot").addEventListener("click",async()=>{const email=$("#aEmail").val
 $("#newPwForm").addEventListener("submit",async e=>{e.preventDefault();const pw=$("#npPw").value;
   if(pw.length<6){msg($("#npMsg"),"At least 6 characters.","err");return;}
   try{await DB.setPassword(pw);history.replaceState(null,"",location.pathname);afterLogin();}catch(err){msg($("#npMsg"),err.message,"err");}});
-document.addEventListener("click",async e=>{if(!e.target.closest("[data-signout]"))return;await DB.signOut();store.set("org",null);location.href=location.pathname+(DB.demo?"?demo":"");});
+document.addEventListener("click",async e=>{if(!e.target.closest("[data-signout]"))return;await DB.signOut();store.set("org",null);location.href=location.pathname;});
 
 /* ---------- first school ---------- */
 let suSpaces=["Main Gym"];
@@ -465,7 +465,7 @@ async function startPublic(token){
 
 /* ---------- demo bar ---------- */
 function demoBar(){const bar=$("#demoBar");bar.hidden=false;
-  bar.innerHTML=`<span><b>Demo</b> · changes stay in this browser.</span><label>Viewing as <select id="demoWho">${DB.people.map(p=>`<option value="${p.id}"${DB.user().id===p.id?" selected":""}>${esc(p.name)}</option>`).join("")}</select></label><button type="button" id="demoReset">Reset demo</button>`;
+  bar.innerHTML=`<span><b>Demo</b> · changes stay in this browser.</span><label><span class="demo-as">Viewing as </span><select id="demoWho">${DB.people.map(p=>`<option value="${p.id}"${DB.user().id===p.id?" selected":""}>${esc(p.name)}</option>`).join("")}</select></label><button type="button" id="demoReset">Reset</button><a class="demo-exit" href="./">Exit demo</a>`;
   $("#demoWho").addEventListener("change",async e=>{DB.switchUser(e.target.value);S.orgs=await DB.orgs();if(!S.orgs.length){setupScreen();return;}S.org=S.orgs[0];await openOrg();});
   $("#demoReset").addEventListener("click",()=>{DB.reset();location.reload();});}
 
